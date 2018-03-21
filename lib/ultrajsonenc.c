@@ -718,7 +718,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
 {
   const char *value;
   char *objName;
-  int count;
+  int count, res;
   JSOBJ iterObj;
   size_t szlen;
   JSONTypeContext tc;
@@ -792,7 +792,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
           {
             Buffer_AppendCharUnchecked (enc, ',');
 #ifndef JSON_NO_EXTRA_WHITESPACE
-            Buffer_AppendCharUnchecked (buffer, ' ');
+            Buffer_AppendCharUnchecked (enc, ' ');
 #endif
             Buffer_AppendIndentNewlineUnchecked (enc);
           }
@@ -819,8 +819,16 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name, size_t cbName)
     Buffer_AppendCharUnchecked (enc, '{');
     Buffer_AppendIndentNewlineUnchecked (enc);
 
-    while (enc->iterNext(obj, &tc))
+    while ((res = enc->iterNext(obj, &tc)))
     {
+      if(res < 0)
+      {
+        enc->iterEnd(obj, &tc);
+        enc->endTypeContext(obj, &tc);
+        enc->level--;
+        return;
+      }
+
       if (count > 0)
       {
         Buffer_AppendCharUnchecked (enc, ',');
